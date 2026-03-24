@@ -5,10 +5,13 @@ from app.models import Receipt
 from app.database import get_db
 from app.services.ocr import analyse_receipt, _guess_category
 from app.auth import get_current_user
+from app.config import settings
 from pydantic import BaseModel
 from typing import Optional
+import logging
 
 router = APIRouter(prefix="/api/receipts", tags=["receipts"])
+logger = logging.getLogger(__name__)
 
 
 class ReceiptCreate(BaseModel):
@@ -38,10 +41,22 @@ async def scan_receipt(
 ):
     """Upload a receipt image and extract data via Azure Document Intelligence."""
     contents = await file.read()
-    if len(contents) > 10_000_000:
-        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    if len(contents) > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large (max {settings.max_upload_mb} MB)",
+        )
 
-    result = await analyse_receipt(contents)
+    try:
+        result = await analyse_receipt(contents)
+    except ValueError as exc:
+        # Missing OCR credentials should not crash request handling.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("OCR scan failed")
+        raise HTTPException(status_code=502, detail="OCR processing failed") from exc
+
     return {
         "vendor": result["vendor"],
         "date": result["date"],

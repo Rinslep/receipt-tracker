@@ -32,6 +32,8 @@ receipt-tracker/
 
 ## Getting started
 
+Prerequisite: Python 3.12
+
 ```bash
 # 1. Copy and populate secrets
 cp .env.example .env

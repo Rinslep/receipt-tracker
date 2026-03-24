@@ -1,7 +1,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 sqlalchemy[asyncio]==2.0.35
-# asyncpg==0.30.0  # production only (PostgreSQL) — requires C++ build tools on Windows
+asyncpg==0.30.0
 python-multipart==0.0.12
 python-jose[cryptography]==3.3.0
 azure-ai-formrecognizer==3.3.3

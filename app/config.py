@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     # Database — defaults to SQLite for local dev; use postgresql+asyncpg:// in prod
     database_url: str = "sqlite+aiosqlite:///./receipts.db"
 
+    # Upload size limit in MB for /api/receipts/scan
+    max_upload_mb: int = 20
+
     # Azure Document Intelligence
     doc_intel_endpoint: str = ""
     doc_intel_key: str = ""

@@ -104,7 +104,7 @@ az appservice plan create \
 az webapp create \
   --name receipt-tracker-app \
   --resource-group receipts-rg \
-  --runtime "PYTHON:3.14" \
+  --runtime "PYTHON:3.12" \
   --plan receipt-plan
 
 # Configure Easy Auth

@@ -474,6 +474,8 @@ function switchView(name, btn) {
 let currentImageData = null;
 let currentFile = null;
 const cameraZone = document.getElementById('cameraZone');
+const CLIENT_TARGET_MAX_MB = 8;
+const CLIENT_TARGET_MAX_BYTES = CLIENT_TARGET_MAX_MB * 1024 * 1024;
 
 function openCamera() {
   document.getElementById('cameraInput').click();
@@ -490,16 +492,41 @@ cameraZone.addEventListener('drop', (e) => {
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
-function handleFile(file) {
+async function handleFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
-  currentFile = file;
+  const uploadFile = file.size > CLIENT_TARGET_MAX_BYTES
+    ? await downscaleImage(file, CLIENT_TARGET_MAX_BYTES)
+    : file;
+  currentFile = uploadFile;
   const reader = new FileReader();
   reader.onload = (e) => {
     currentImageData = e.target.result;
     showPreview(currentImageData);
-    scanReceipt(file);
+    scanReceipt(uploadFile);
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(uploadFile);
+}
+
+async function downscaleImage(file, targetBytes) {
+  const imageBitmap = await createImageBitmap(file);
+  const maxDimension = 2200;
+  const scale = Math.min(1, maxDimension / Math.max(imageBitmap.width, imageBitmap.height));
+  const width = Math.max(1, Math.round(imageBitmap.width * scale));
+  const height = Math.max(1, Math.round(imageBitmap.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imageBitmap, 0, 0, width, height);
+
+  let quality = 0.88;
+  let blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+  while (blob && blob.size > targetBytes && quality > 0.45) {
+    quality -= 0.1;
+    blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+  }
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
 }
 
 function showPreview(src) {
@@ -528,7 +555,12 @@ async function scanReceipt(file) {
       document.getElementById('fTotal').value = data.total ? data.total.toFixed(2) : '';
       if (data.suggested_category) document.getElementById('fCategory').value = data.suggested_category;
     } else {
-      showToast('OCR unavailable — fill in manually');
+      if (res.status === 413) {
+        const errorBody = await res.json().catch(() => ({}));
+        showToast(errorBody.detail || 'Image too large, try a smaller photo');
+      } else {
+        showToast('OCR unavailable — fill in manually');
+      }
       document.getElementById('fDate').value = today;
     }
     document.getElementById('fNotes').value = '';
