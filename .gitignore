@@ -87,3 +87,4 @@ secrets.json
 # === Local runtime artifacts ===
 receipts.db
 .claude/
+secrets
