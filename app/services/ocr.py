@@ -1,5 +1,15 @@
 import json
+from datetime import date, datetime
+from decimal import Decimal
 from app.config import settings
+
+
+def _json_default(obj):
+    if isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
+    return str(obj)
 
 _client = None
 
@@ -64,7 +74,7 @@ async def analyse_receipt(image_bytes: bytes) -> dict:
         "total": float(get_val("Total", 0) or 0),
         "subtotal": float(get_val("Subtotal", 0) or 0),
         "tax": float(get_val("TotalTax", 0) or 0),
-        "raw": json.dumps(result.to_dict()),
+        "raw": json.dumps(result.to_dict(), default=_json_default),
         "suggested_category": _guess_category(vendor),
     }
 
@@ -79,6 +89,8 @@ def _guess_category(vendor: str) -> str:
     transport = [
         "shell", "bp", "esso", "uber", "bolt", "trainline", "tfl",
         "national rail", "eurostar", "avis", "hertz",
+        "compass travel", "stagecoach", "arriva", "first bus",
+        "go-ahead", "transdev", "megabus", "national express",
     ]
     office = ["staples", "ryman", "viking", "currys", "argos"]
     software = [

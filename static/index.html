@@ -195,7 +195,7 @@ body {
 .receipt-field select { appearance: none; cursor: pointer; }
 .receipt-field .amount { color: var(--accent); font-size: 16px; }
 .save-btn {
-  margin-top: 12px; width: 100%; padding: 14px;
+  margin-top: 12px; margin-bottom: 90px; width: 100%; padding: 14px;
   background: var(--accent); color: var(--bg);
   border: none; border-radius: var(--radius-sm);
   font-family: var(--font); font-size: 14px; font-weight: 700;
@@ -261,6 +261,12 @@ body {
 .receipt-item .vendor { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .receipt-item .meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .receipt-item .total { font-family: var(--mono); font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.delete-btn {
+  background: none; border: none; color: var(--text-3); cursor: pointer;
+  padding: 6px; border-radius: 6px; flex-shrink: 0; line-height: 0;
+  transition: color 0.2s, background 0.2s;
+}
+.delete-btn:hover { color: var(--red); background: rgba(248,113,113,0.1); }
 
 /* History view */
 .history-view { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -619,17 +625,38 @@ async function renderDashboard() {
   } catch(e) { console.error('Dashboard error', e); }
 }
 
-function receiptItemHtml(r) {
+function receiptItemHtml(r, showDelete = false) {
   const m = CAT_META[r.category] || CAT_META.other;
   const total = typeof r.total === 'number' ? r.total.toFixed(2) : '0.00';
-  return `<div class="receipt-item">
+  const deleteBtn = showDelete
+    ? `<button class="delete-btn" onclick="deleteReceipt('${escHtml(r.id)}',this)" title="Delete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>`
+    : '';
+  return `<div class="receipt-item" id="receipt-${escHtml(r.id)}">
     <div class="icon" style="background:${m.color}22;color:${m.color}">${m.emoji}</div>
     <div class="details">
       <div class="vendor">${escHtml(r.vendor)}</div>
       <div class="meta">${formatDate(r.date)}${r.notes ? ' · ' + escHtml(r.notes) : ''}</div>
     </div>
     <div class="total" style="color:${m.color}">£${total}</div>
+    ${deleteBtn}
   </div>`;
+}
+
+async function deleteReceipt(id, btn) {
+  const el = btn.closest('.receipt-item');
+  if (el) { el.style.transition = 'opacity 0.15s'; el.style.opacity = '0'; }
+  btn.disabled = true;
+  const res = await apiFetch(`/api/receipts/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    el?.remove();
+    showToast('Receipt deleted');
+  } else {
+    if (el) { el.style.opacity = '1'; }
+    btn.disabled = false;
+    showToast('Could not delete receipt');
+  }
 }
 
 // ─── HISTORY ─────────────────────────────────────────────
@@ -643,7 +670,7 @@ async function renderHistory(cat) {
     const res = await apiFetch(url);
     const receipts = res.ok ? await res.json() : [];
     document.getElementById('historyList').innerHTML = receipts.length
-      ? receipts.map(receiptItemHtml).join('')
+      ? receipts.map(r => receiptItemHtml(r, true)).join('')
       : '<div class="empty-state"><p>No receipts in this category</p></div>';
   } catch { document.getElementById('historyList').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
 }
