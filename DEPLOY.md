@@ -65,6 +65,12 @@ Then run the Alembic migration to create tables:
 .venv/Scripts/python.exe -m alembic upgrade head
 ```
 
+> **Note — "table already exists" error:** The FastAPI app creates tables automatically on startup via `Base.metadata.create_all`. If you see `sqlite3.OperationalError: table receipts already exists`, the table was already created by the app before Alembic ran. Fix it by stamping the migration as done without re-running it:
+> ```bash
+> .venv/Scripts/python.exe -m alembic stamp head
+> ```
+> Future migrations will apply normally from this point.
+
 ---
 
 ### 1c. App Registration (Entra ID) ✅ Complete
