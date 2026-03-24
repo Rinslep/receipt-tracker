@@ -1,10 +1,10 @@
 {
-  "name": "Receipt Tracker",
+  "name": "Receipts",
   "short_name": "Receipts",
+  "description": "Scan and track expenses with Azure Document Intelligence",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
-  "description": "Track and analyse your receipts.",
+  "background_color": "#0a0f1c",
+  "theme_color": "#0a0f1c",
   "icons": []
 }

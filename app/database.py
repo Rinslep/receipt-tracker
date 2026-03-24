@@ -1,7 +1,16 @@
-"""
-database.py
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from app.config import settings
 
-Async SQLAlchemy engine and session factory setup. Creates the async engine
-from DATABASE_URL (asyncpg), exposes an `AsyncSession` dependency for use in
-FastAPI routes, and declares the shared `Base` for ORM model registration.
-"""
+engine = create_async_engine(
+    settings.database_url,
+    # SQLite needs check_same_thread=False; ignored by other drivers
+    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
+    echo=False,
+)
+
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session

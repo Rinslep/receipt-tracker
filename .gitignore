@@ -83,3 +83,7 @@ logs/
 # === Secrets ===
 .env
 secrets.json
+
+# === Local runtime artifacts ===
+receipts.db
+.claude/

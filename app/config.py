@@ -1,7 +1,20 @@
-"""
-config.py
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-Application configuration. Loads environment variables from .env via
-pydantic-settings and exposes a typed `Settings` object consumed across the
-application. All secrets and environment-specific values live here.
-"""
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # Database — defaults to SQLite for local dev; use postgresql+asyncpg:// in prod
+    database_url: str = "sqlite+aiosqlite:///./receipts.db"
+
+    # Azure Document Intelligence
+    doc_intel_endpoint: str = ""
+    doc_intel_key: str = ""
+
+    # Entra ID
+    tenant_id: str = ""
+    client_id: str = ""
+    client_secret: str = ""
+
+
+settings = Settings()
