@@ -222,10 +222,86 @@ Once Easy Auth is enabled, the `X-Dev-User` local dev header is no longer used �
 
 ## Remaining / Future Work
 
+### Blocked on Azure quota
 - **PostgreSQL** — create the flexible server (Step 1b) and run `alembic upgrade head`
 - **App Service** — waiting on quota increase ticket, then follow Steps 1d → 3 → 4
-- **Azure Blob Storage** — persist receipt images alongside extracted data
-- **Line item extraction** — Document Intelligence returns individual items, not just totals
-- **Budget alerts** — notify when monthly spend exceeds a threshold
+
+---
+
+### Planned features
+
+#### Line item extraction
+Document Intelligence already returns individual items (e.g. bread £1.20, milk £0.89) inside `result.documents[0].fields["Items"]`. The work needed:
+- Add a `LineItem` table to the database (linked to `Receipt` by foreign key) storing `description`, `quantity`, `unit_price`, `total_price`
+- Extract and save line items in `ocr.py` alongside the receipt header fields
+- Add a new Alembic migration for the `line_items` table
+- Show line items in a collapsible section on the history/scan view
+- Include line items in the CSV export
+- Enable analytics by item name (e.g. "how much have I spent on coffee across all shops")
+
+#### Date fallback to current day
+When the OCR returns no `TransactionDate` (common with transport tickets, digital receipts), the backend currently returns an empty string. The fix:
+- In `ocr.py`, if `TransactionDate` is not found, default to `datetime.date.today().isoformat()` before returning
+- This means the date field always arrives pre-filled; the user can correct it if wrong
+
+#### Merchant deduplication
+"Tesco Express", "Tesco Metro", and "TESCO STORES LTD" are all Tesco. Without dedup, analytics fragment across variants. Approach:
+- Add a normalisation step in `ocr.py` (or a new `services/merchants.py`) that maps known variants to a canonical name using a lookup dict
+- Optionally, use fuzzy matching (e.g. `rapidfuzz`) for unknown merchants
+- Store both the raw vendor name (for audit) and the normalised name (for analytics)
+- Surface a "merge duplicates" UI so the user can manually consolidate merchants they recognise
+
+#### Receipt photo storage (Azure Blob Storage)
+Currently only extracted data is saved — the original image is discarded after OCR. To store it:
+- Create an Azure Storage Account and a Blob container (`receipts-images`) in `receipts-rg`
+- Add `azure-storage-blob` to `requirements.txt`
+- In the scan endpoint, upload the image bytes to Blob Storage and save the returned URL to `Receipt.image_url`
+- Add a `AZURE_STORAGE_CONNECTION_STRING` (or account name + key) to `.env` and App Service settings
+- In the history view, show a thumbnail or "View original" link per receipt
+
+```bash
+# Create storage account
+az storage account create \
+  --name receiptstorageacc \
+  --resource-group receipts-rg \
+  --location uksouth \
+  --sku Standard_LRS
+
+# Create blob container
+az storage container create \
+  --name receipt-images \
+  --account-name receiptstorageacc \
+  --public-access off
+```
+
+#### Enhanced CSV / Excel export
+The current export button generates a flat CSV of receipt headers. Improvements:
+- Include line items as additional rows (indented or in a separate sheet)
+- Add a date range picker so you can export "March 2026" rather than everything
+- Generate a proper `.xlsx` file using `openpyxl` with a summary sheet and a data sheet
+- Add a monthly subtotal row per category
+
+#### Email-to-receipt import
+Allow forwarding a receipt email (or attaching a photo) to a dedicated address and have it auto-import. Architecture:
+- **Azure Communication Services** (or **SendGrid Inbound Parse**) receives the email and POSTs it as a webhook to a new endpoint `POST /api/receipts/ingest-email`
+- The endpoint extracts attachments (PDF, JPEG, PNG) or the HTML body
+- Image/PDF attachments are passed through the existing `analyse_receipt()` OCR pipeline
+- HTML email bodies (e.g. Amazon order confirmations, Trainline e-tickets) are parsed with BeautifulSoup or a regex pattern per known sender to extract total, date, vendor without needing OCR
+- The resulting receipt is saved against the user's account (matched by the `From:` email address to their Entra ID email)
+- Requires a publicly reachable endpoint — only works once deployed to App Service
+
+```bash
+# Create an Azure Communication Services resource for email ingestion
+az communication create \
+  --name receipts-comms \
+  --resource-group receipts-rg \
+  --location global \
+  --data-location uksouth
+```
+
+---
+
+### Lower priority
+- **Budget alerts** — notify when monthly spend in a category exceeds a set threshold
 - **Multi-currency** — currently assumes GBP (£)
-- **Date extraction for transport tickets** — prebuilt-receipt model doesn't reliably extract dates from bus/train tickets; may need a custom model or manual fallback prompt
+- **Date extraction for transport tickets** — fallback to today's date (see above) handles the immediate problem; a custom Document Intelligence model would handle it properly long-term
