@@ -26,9 +26,9 @@
 | 1a. Document Intelligence | ✅ Done | Endpoint: `https://uksouth.api.cognitive.microsoft.com/` |
 | 1b. PostgreSQL Flexible Server | ⏳ Pending | Run CLI command below |
 | 1c. App Registration (Entra ID) | ✅ Done | Redirect URIs set to Web platform |
-| 1d. App Service + Plan | ⏳ Pending quota | Sev C ticket raised for UK South quota |
+| 1d. App Service + Plan | ✅ Done | F1 plan in East US 2, env vars set via portal |
 | 2. Backend (FastAPI) | ✅ Done | Running locally on SQLite |
-| 3. Deploy to App Service | ⏳ Blocked | Waiting on App Service quota approval |
+| 3. Deploy to App Service | ⏳ Next step | App Service ready, deploy code now |
 | 4. Enable Easy Auth | ⏳ Pending | Can be done once App Service exists |
 
 ---
@@ -87,11 +87,11 @@ Then run the Alembic migration to create tables:
 
 ---
 
-### 1d. Azure App Service ⏳ Pending quota
+### 1d. Azure App Service ✅ Complete
 
-A Sev C quota increase ticket has been raised for App Service VMs in UK South (current limit: 0).
+F1 plan created in East US 2. Environment variables set via the portal. Note: UK South quota was 0 — F1 in East US 2 was used instead.
 
-Once approved, run:
+Commands used:
 ```bash
 # Create the App Service Plan
 az appservice plan create \
@@ -224,7 +224,6 @@ Once Easy Auth is enabled, the `X-Dev-User` local dev header is no longer used �
 
 ### Blocked on Azure quota
 - **PostgreSQL** — create the flexible server (Step 1b) and run `alembic upgrade head`
-- **App Service** — waiting on quota increase ticket, then follow Steps 1d → 3 → 4
 
 ---
 
