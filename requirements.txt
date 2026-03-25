@@ -11,6 +11,6 @@ pydantic-settings==2.6.0
 alembic==1.13.3
 aiosqlite==0.20.0
 aiofiles==23.2.1
-# gunicorn==22.0.0  # production only — not available on Windows
+gunicorn==22.0.0
 pytest==8.3.0
 pytest-asyncio==0.24.0
