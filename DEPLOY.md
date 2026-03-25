@@ -24,12 +24,12 @@
 | Step | Status | Notes |
 |---|---|---|
 | 1a. Document Intelligence | ✅ Done | Endpoint: `https://uksouth.api.cognitive.microsoft.com/` |
-| 1b. PostgreSQL Flexible Server | ⏳ Pending | Run CLI command below |
+| 1b. PostgreSQL Flexible Server | ✅ Done | Server created, migrations run |
 | 1c. App Registration (Entra ID) | ✅ Done | Redirect URIs set to Web platform |
 | 1d. App Service + Plan | ✅ Done | F1 plan in East US 2, env vars set via portal |
 | 2. Backend (FastAPI) | ✅ Done | Running locally on SQLite |
-| 3. Deploy to App Service | ⏳ Next step | App Service ready, deploy code now |
-| 4. Enable Easy Auth | ⏳ Pending | Can be done once App Service exists |
+| 3. Deploy to App Service | ✅ Done | Deployed via GitHub Actions |
+| 4. Enable Easy Auth | ✅ Done | Entra ID authentication enabled |
 
 ---
 
@@ -41,7 +41,7 @@ Resource created in UK South. Endpoint and key saved to `.env`.
 
 ---
 
-### 1b. Azure Database for PostgreSQL (Flexible Server) ⏳ Todo
+### 1b. Azure Database for PostgreSQL (Flexible Server) ✅ Complete
 
 ```bash
 az postgres flexible-server create \
@@ -160,9 +160,9 @@ receipt-tracker/
 
 ---
 
-## Step 3: Deploy ⏳ Pending App Service quota
+## Step 3: Deploy ✅ Complete
 
-Once the App Service exists:
+Deployed via GitHub Actions CI/CD pipeline. Reference commands used:
 
 ```bash
 # Set startup file
@@ -193,7 +193,7 @@ az webapp deploy \
 
 ---
 
-## Step 4: Enable Easy Auth ⏳ Pending App Service
+## Step 4: Enable Easy Auth ✅ Complete
 
 1. Azure Portal → App Service → **Authentication**
 2. Add identity provider → **Microsoft**
@@ -221,9 +221,6 @@ Once Easy Auth is enabled, the `X-Dev-User` local dev header is no longer used �
 ---
 
 ## Remaining / Future Work
-
-### Blocked on Azure quota
-- **PostgreSQL** — create the flexible server (Step 1b) and run `alembic upgrade head`
 
 ---
 

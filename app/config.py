@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     doc_intel_endpoint: str = ""
     doc_intel_key: str = ""
 
+    # Azure Blob Storage
+    azure_storage_connection_string: str = ""
+    azure_storage_container: str = "receipt-images"
+
     # Entra ID
     tenant_id: str = ""
     client_id: str = ""

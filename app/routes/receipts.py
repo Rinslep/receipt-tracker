@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.models import Receipt
 from app.database import get_db
 from app.services.ocr import analyse_receipt, _guess_category
+from app.services.blob_storage import upload_receipt_image
 from app.auth import get_current_user
 from app.config import settings
 from pydantic import BaseModel
@@ -20,6 +21,7 @@ class ReceiptCreate(BaseModel):
     total: float
     category: str = "other"
     notes: str = ""
+    image_url: str = ""
 
 
 def _to_response(r: Receipt) -> dict:
@@ -30,6 +32,7 @@ def _to_response(r: Receipt) -> dict:
         "total": r.total,
         "category": r.category,
         "notes": r.notes or "",
+        "image_url": r.image_url or "",
         "created_at": r.created_at.isoformat() if r.created_at else "",
     }
 
@@ -57,11 +60,20 @@ async def scan_receipt(
         logger.exception("OCR scan failed")
         raise HTTPException(status_code=502, detail="OCR processing failed") from exc
 
+    # Upload image to blob storage (non-blocking — don't fail the scan if upload fails)
+    image_url = ""
+    try:
+        content_type = file.content_type or "image/jpeg"
+        image_url = await upload_receipt_image(contents, content_type)
+    except Exception:
+        logger.exception("Blob upload failed — continuing without image")
+
     return {
         "vendor": result["vendor"],
         "date": result["date"],
         "total": result["total"],
         "suggested_category": result.get("suggested_category", _guess_category(result["vendor"])),
+        "image_url": image_url,
     }
 
 
@@ -79,6 +91,7 @@ async def create_receipt(
         total=data.total,
         category=data.category,
         notes=data.notes,
+        image_url=data.image_url,
     )
     db.add(receipt)
     await db.commit()
